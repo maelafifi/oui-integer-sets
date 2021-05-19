@@ -51,7 +51,7 @@ intellij should open up; once in intellij, click on run -> edit configurations
 A pop-up should come up. In the top left corner of the pop up, click the + button and select maven project
 A new dialogue will show up; 
 #### parameters tab
-1. update the working directory and make this the root directory e.g. `/Users/mel-afifi/Desktop/graphql/oui-integer-sets`
+1. update the working directory and make this the root directory e.g. `/<ABSOLUTE PATH>/oui-integer-sets`
 2. update the command line to read, `spring-boot:run -Dspring.profiles.label=local -Dspring.profiles.active=local -Dserver.port=8080` (you can replace port as needed)
 #### runner tab
 1. Update the jre to be Java1.8
