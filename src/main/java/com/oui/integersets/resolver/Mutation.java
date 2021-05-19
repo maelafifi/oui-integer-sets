@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class Mutation implements GraphQLMutationResolver {
@@ -23,38 +24,27 @@ public class Mutation implements GraphQLMutationResolver {
         this.setMemberRepository = setMemberRepository;
     }
 
+    /**
+     * Takes in a membersObject, parses it into a set member List, persists to the set tabe
+     * then continues to persist each individual member of the set to the setMember table
+     * @param membersObject
+     * @return
+     */
     public Set createSet(Object membersObject) {
 
-        // this is stupid and could have been avoided if I implemented the graphql resolver to handle controller input
-        String membersString = membersObject.toString();
-        membersString = membersString.replaceAll("\\s", "");
-        membersString = membersString.replaceAll(".+\\[", "");
-        membersString = membersString.replaceAll("].*", "");
-        String[] memberArray = membersString.split(",");
+        List<Integer> members = memberMapper(membersObject);
 
-        List<Integer> members = new ArrayList<>();
-
-        for(String s : memberArray) {
-            members.add(Integer.valueOf(s));
-        }
-
-        HashSet<Integer> memberSet = new HashSet<>();
-
-        for(Integer s : members) {
-            memberSet.add(s);
-        }
-
-        // TODO: throw error due to duplicate values in set
-        if(memberSet.size() != members.size()) {
+        if(!checkDuplicates(members)) {
             throw new BadRequestException(String.format("Duplicate integers in member set: %s", members.toString()));
         }
 
         // create a new Set domain object
+        // TODO: WRAP IN TRY-CATCH
         Set set = new Set();
         set.setMembers(members);
         setRepository.save(set);
 
-
+        // create a new setMember object for each memeber of the set
         int setId = set.getSetId();
         int currEntryNum = 1;
         for( ; currEntryNum < members.size(); currEntryNum++) {
@@ -62,11 +52,46 @@ public class Mutation implements GraphQLMutationResolver {
             setMember.setSetId(setId);
             setMember.setSetMemberEntryNum(currEntryNum);
             setMember.setSetMemberValue(members.get(currEntryNum));
+            // TODO: WRAP IN TRY-CATCH
             setMemberRepository.save(setMember);
         }
 
         return set;
     }
+
+
+    /**
+     * Checks to ensure that sets with duplicate values aren't being
+     * @param members
+     * @return
+     */
+    private Boolean checkDuplicates(List<Integer> members) {
+        java.util.Set<Integer> memberSet = members.stream().collect(Collectors.toSet());
+
+        if(memberSet.size() != members.size()) {
+            return false;
+        }
+        return true;
+    }
+
+    // this is stupid and could have been avoided if I implemented the graphql resolver to handle controller input
+    private List<Integer> memberMapper(Object membersObject) {
+        String membersString = membersObject.toString();
+        membersString = membersString.replaceAll("\\s", "");
+        membersString = membersString.replaceAll(".+\\[", "");
+        membersString = membersString.replaceAll("].*", "");
+
+        String[] memberArray = membersString.split(",");
+
+        List<Integer> members = new ArrayList<>();
+
+        for(String s : memberArray) {
+            members.add(Integer.valueOf(s));
+        }
+        return members;
+    }
+
+
 
 
 

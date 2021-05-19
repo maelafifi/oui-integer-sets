@@ -15,6 +15,12 @@ public class SetMemberRepositoryImpl {
     @Autowired
     protected EntityManager entityManager;
 
+    /**
+     *  Takes in a set object and retrieves all setId's from the index (setMember) that have at least one of
+     *  the same members.
+     * @param set
+     * @return
+     */
     public java.util.Set<Integer> getIntersectingSetIds(Set set) {
         TypedQuery<Integer> query = entityManager.createQuery("select s.setId " +
                 "from SetMember s " +

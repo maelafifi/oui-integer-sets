@@ -17,7 +17,7 @@ public class Query implements GraphQLQueryResolver {
         this.setMemberRepository = setMemberRepository;
     }
 
-
+    // returns list of all set objects
     public Iterable<Set> getSets() {
         return setRepository.findAll();
     }
