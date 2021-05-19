@@ -11,11 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import java.security.MessageDigest;
 
 @Component
 public class Mutation implements GraphQLMutationResolver {
@@ -45,9 +46,12 @@ public class Mutation implements GraphQLMutationResolver {
             throw new BadRequestException(String.format("Duplicate integers in member set: %s", members.toString()));
         }
 
+        String setUniqueId = generateUniqueIdentifier(members.toString());
+
         // create a new Set object
         Set set = new Set();
         set.setMembers(members);
+        set.setSetUniqueId(setUniqueId);
         try {
             LOGGER.info(String.format("Attempting to create set: %s", members.toString()));
             setRepository.save(set);
@@ -57,7 +61,7 @@ public class Mutation implements GraphQLMutationResolver {
             throw new BadRequestException(e.getMessage());
         }
 
-        // create a new setMember object for each memeber of the set
+        // create a new setMember object for each member of the set
         int setId = set.getSetId();
         int currEntryNum = 1;
         for( ; currEntryNum < members.size(); currEntryNum++) {
@@ -124,6 +128,27 @@ public class Mutation implements GraphQLMutationResolver {
         return members;
     }
 
+    /**
+     * Takes in a string, hashes the string, returns the hashed string. Can be used as a unique identifier.
+     * Using md2, but can be changed as necessary.
+     * @param membersString
+     * @return
+     */
+    private String generateUniqueIdentifier(String membersString) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD2");
+            byte[] messageDigest = md.digest(membersString.getBytes());
+            BigInteger no = new BigInteger(1, messageDigest);
+            String hashtext = no.toString(16);
+
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+            return hashtext;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 
 

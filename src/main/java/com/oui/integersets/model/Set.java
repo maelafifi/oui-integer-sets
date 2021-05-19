@@ -31,6 +31,7 @@ public class Set {
 
     public static final String SET_ID = "set_id";
     public static final String SET_MEMBERS = "set_members";
+    public static final String SET_UNIQUE_ID = "set_unique_id";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,6 +48,12 @@ public class Set {
             updatable = false
     )
     private List<Integer> setMembers;
+
+    @Column(
+            name = SET_UNIQUE_ID,
+            updatable = false
+    )
+    private String setUniqueId;
 
     public Set() {
     }
@@ -74,5 +81,13 @@ public class Set {
 
     public void setMembers(List<Integer> setMembers) {
         this.setMembers = setMembers;
+    }
+
+    public String getSetUniqueId() {
+        return setUniqueId;
+    }
+
+    public void setSetUniqueId(String setUniqueId) {
+        this.setUniqueId = setUniqueId;
     }
 }

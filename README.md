@@ -25,6 +25,7 @@ create database sets;
 
 create table set (
     set_id SERIAL PRIMARY KEY,
+    set_unique_id varchar(64) NOT NULL UNIQUE,
     set_members integer[] NOT NULL UNIQUE
 );
 
