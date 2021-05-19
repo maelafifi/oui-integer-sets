@@ -39,4 +39,25 @@ create table set_member (
 
 #### Now that you have that out of the way, it's probably a good idea to clone this repository, then cd into it. 
 #### You'll want to use the oui-feature branch
-#### Once you've cloned the repository, cd into the root of the project  
+```
+git clone https://github.com/maelafifi/oui-integer-sets.git
+cd oui-integer-sets 
+git checkout oui-feature
+```
+#### You should be able to test it out, now. Run the following to start the server -- and I am hoping you have java1.8
+cd back down one level and run `idea oui-integer-sets`
+
+intellij should open up; once in intellij, click on run -> edit configurations
+A pop-up should come up. In the top left corner of the pop up, click the + button and select maven project
+A new dialogue will show up; 
+#### parameters tab
+1. update the working directory and make this the root directory e.g. `/Users/mel-afifi/Desktop/graphql/oui-integer-sets`
+2. update the command line to read, `spring-boot:run -Dspring.profiles.label=local -Dspring.profiles.active=local -Dserver.port=8080` (you can replace port as needed)
+#### runner tab
+1. Update the jre to be Java1.8
+
+Save, then click the play button on intellij. The application should start up. 
+
+## Querying and mutating
+Navigate to `http://localhost:8080/graphiql` and you will have a ui for querying and mutating the service.
+You will also be able to take a look at the schema... that you designed.... so not sure how useful that is. 
