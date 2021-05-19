@@ -129,8 +129,8 @@ public class Mutation implements GraphQLMutationResolver {
     }
 
     /**
-     * Takes in a string, hashes the string, returns the hashed string. Can be used as a unique identifier.
-     * Using md2, but can be changed as necessary.
+     * Helper; Takes in a string, hashes the string, returns the hashed string. Can be used as a unique identifier.
+     * Arbitrarily chose md2. Stolen from https://www.geeksforgeeks.org/md2-hash-in-java/
      * @param membersString
      * @return
      */
