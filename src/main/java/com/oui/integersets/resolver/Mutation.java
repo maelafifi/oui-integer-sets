@@ -6,15 +6,20 @@ import com.oui.integersets.model.SetMember;
 import com.oui.integersets.repository.SetMemberRepository;
 import com.oui.integersets.repository.SetRepository;
 import com.oui.integersets.model.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
 public class Mutation implements GraphQLMutationResolver {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Mutation.class);
 
     private SetRepository setRepository;
     private SetMemberRepository setMemberRepository;
@@ -30,19 +35,27 @@ public class Mutation implements GraphQLMutationResolver {
      * @param membersObject
      * @return
      */
+    @Transactional
     public Set createSet(Object membersObject) {
 
         List<Integer> members = memberMapper(membersObject);
 
         if(!checkDuplicates(members)) {
+            LOGGER.error("Received request with duplicate values; rejecting");
             throw new BadRequestException(String.format("Duplicate integers in member set: %s", members.toString()));
         }
 
-        // create a new Set domain object
-        // TODO: WRAP IN TRY-CATCH
+        // create a new Set object
         Set set = new Set();
         set.setMembers(members);
-        setRepository.save(set);
+        try {
+            LOGGER.info(String.format("Attempting to create set: %s", members.toString()));
+            setRepository.save(set);
+            LOGGER.info(String.format("Set created with ID: %s", set.getSetId()));
+        } catch(Exception e) {
+            LOGGER.error(String.format("Error persisting set: %s ; Error: %s", members.toString(), e.getLocalizedMessage()));
+            throw new BadRequestException(e.getMessage());
+        }
 
         // create a new setMember object for each memeber of the set
         int setId = set.getSetId();
@@ -52,8 +65,13 @@ public class Mutation implements GraphQLMutationResolver {
             setMember.setSetId(setId);
             setMember.setSetMemberEntryNum(currEntryNum);
             setMember.setSetMemberValue(members.get(currEntryNum));
-            // TODO: WRAP IN TRY-CATCH
-            setMemberRepository.save(setMember);
+            try {
+                LOGGER.info(String.format("Attempting to persist member %s (%s) of set", currEntryNum, members.get(currEntryNum)));
+                setMemberRepository.save(setMember);
+            } catch(Exception e) {
+                LOGGER.error(String.format("Error persisting member: %s ; Error: %s", members.toString(), e.getLocalizedMessage()));
+                throw new BadRequestException(e.getMessage());
+            }
         }
 
         return set;
@@ -61,6 +79,7 @@ public class Mutation implements GraphQLMutationResolver {
 
 
     /**
+     * Helper method
      * Checks to ensure that sets with duplicate values aren't being
      * @param members
      * @return
@@ -74,7 +93,10 @@ public class Mutation implements GraphQLMutationResolver {
         return true;
     }
 
-    // this is stupid and could have been avoided if I implemented the graphql resolver to handle controller input
+    // Helper; this is stupid and could have been avoided if I implemented the graphql resolver to handle controller input
+    // Basically, this consumes and parses the members object ({members=[1, 2, 3, 4]}), which is passed along from the
+    // graphql built-in methods since I didn't implement the controller layer. Had I gone the other route, I could have
+    // parsed this object to a pojo (which somewhat seems antithetical) and below could have bee avoided altogether
     private List<Integer> memberMapper(Object membersObject) {
         String membersString = membersObject.toString();
         membersString = membersString.replaceAll("\\s", "");
@@ -85,8 +107,19 @@ public class Mutation implements GraphQLMutationResolver {
 
         List<Integer> members = new ArrayList<>();
 
-        for(String s : memberArray) {
-            members.add(Integer.valueOf(s));
+
+        // handle the empty set scenario
+        if(membersString.length() == 0) {
+            return members;
+        }
+
+
+        for(String currInteger : memberArray) {
+            try {
+                members.add(Integer.valueOf(currInteger));
+            } catch(Exception e) {
+                throw new BadRequestException(String.format("Member %s of set cannot be parsed to an integer", currInteger));
+            }
         }
         return members;
     }

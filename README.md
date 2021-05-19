@@ -61,3 +61,27 @@ Save, then click the play button on intellij. The application should start up.
 ## Querying and mutating
 Navigate to `http://localhost:8080/graphiql` and you will have a ui for querying and mutating the service.
 You will also be able to take a look at the schema... that you designed.... so not sure how useful that is. 
+
+## Queries to test 
+#### creating a new set -- try this, twice. First time will succeed, second will fail due to duplicate values
+```
+mutation {
+  createSet(input:{ members:[1,2,3,4] }) {
+    members
+  }
+}
+```
+
+##### Change the array to any list of integers in the above mutation to test persisting different data, good or bad.
+
+#### Once you've created a few sets, run the following query to retrieve all sets and their intersecting sets
+``` 
+query {
+	sets {
+    members
+  	intersectingSets {
+    	members
+  	}
+    }
+}
+```

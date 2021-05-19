@@ -4,12 +4,17 @@ import com.coxautodev.graphql.tools.GraphQLResolver;
 import com.oui.integersets.repository.SetRepository;
 import com.oui.integersets.model.Set;
 import com.oui.integersets.repository.impl.SetMemberRepositoryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class SetResolver implements GraphQLResolver<Set> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SetResolver.class);
+
     private SetRepository setRepository;
     private SetMemberRepositoryImpl setMemberRepositoryImpl;
 
@@ -26,6 +31,12 @@ public class SetResolver implements GraphQLResolver<Set> {
      * @return a list of Set objects, containing setId and their setMembers
      */
     public List<Set> getIntersectingSets(Set set) {
+        // handle empty set
+        if(set.getMembers().size() == 0) {
+            return new ArrayList<>();
+        }
+
+        LOGGER.info(String.format("Retrieving list of sets that intersect %s", set.getMembers()));
         java.util.Set<Integer> intersectingSetIds =  setMemberRepositoryImpl.getIntersectingSetIds(set);
         List<Set> intersectingSets = setRepository.findAllById(intersectingSetIds);
         return intersectingSets;
