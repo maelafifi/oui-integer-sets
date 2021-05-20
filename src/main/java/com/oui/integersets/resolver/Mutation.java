@@ -6,6 +6,7 @@ import com.oui.integersets.model.SetMember;
 import com.oui.integersets.repository.SetMemberRepository;
 import com.oui.integersets.repository.SetRepository;
 import com.oui.integersets.model.Set;
+import com.oui.integersets.repository.impl.SetRepositoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,10 +26,13 @@ public class Mutation implements GraphQLMutationResolver {
 
     private SetRepository setRepository;
     private SetMemberRepository setMemberRepository;
+    private SetRepositoryImpl setRepositoryImpl;
 
-    public Mutation(SetRepository setRepository, SetMemberRepository setMemberRepository) {
+
+    public Mutation(SetRepository setRepository, SetMemberRepository setMemberRepository, SetRepositoryImpl setRepositoryImpl) {
         this.setRepository = setRepository;
         this.setMemberRepository = setMemberRepository;
+        this.setRepositoryImpl = setRepositoryImpl;
     }
 
     /**
@@ -40,13 +45,21 @@ public class Mutation implements GraphQLMutationResolver {
     public Set createSet(Object membersObject) {
 
         List<Integer> members = memberMapper(membersObject);
+        List<Integer> orderedMembers = new ArrayList<>(members);
+        Collections.sort(orderedMembers);
 
         if(!checkDuplicates(members)) {
             LOGGER.error("Received request with duplicate values; rejecting");
             throw new BadRequestException(String.format("Duplicate integers in member set: %s", members.toString()));
         }
 
-        String setUniqueId = generateUniqueIdentifier(members.toString());
+        String setUniqueId = generateUniqueIdentifier(orderedMembers.toString());
+
+        // checks to see if this unique collection of integers exists; if it does, throw duplicate error exception
+        if(setRepositoryImpl.getSetExists(setUniqueId)) {
+            LOGGER.error(String.format("Set %s exists, already", members.toString()));
+            throw new BadRequestException(String.format("Duplicate set %s ; rejecting", members.toString()));
+        }
 
         // create a new Set object
         Set set = new Set();
@@ -63,14 +76,13 @@ public class Mutation implements GraphQLMutationResolver {
 
         // create a new setMember object for each member of the set
         int setId = set.getSetId();
-        int currEntryNum = 1;
-        for( ; currEntryNum < members.size(); currEntryNum++) {
+        for( int currEntryNum = 0; currEntryNum < members.size(); currEntryNum++) {
             SetMember setMember = new SetMember();
             setMember.setSetId(setId);
-            setMember.setSetMemberEntryNum(currEntryNum);
+            setMember.setSetMemberEntryNum(currEntryNum+1);
             setMember.setSetMemberValue(members.get(currEntryNum));
             try {
-                LOGGER.info(String.format("Attempting to persist member %s (%s) of set", currEntryNum, members.get(currEntryNum)));
+                LOGGER.info(String.format("Attempting to persist member %s (%s) of set", currEntryNum+1, members.get(currEntryNum)));
                 setMemberRepository.save(setMember);
             } catch(Exception e) {
                 LOGGER.error(String.format("Error persisting member: %s ; Error: %s", members.toString(), e.getLocalizedMessage()));
